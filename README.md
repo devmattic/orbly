@@ -55,6 +55,41 @@ Override CSS variables globally or per‑section:
 .hero      { --cursor-size: 20px; --ring-size: 48px; }
 ```
 
+### Hover controls
+
+Opt-in any element for hover scale using data attributes and optional magnet behavior:
+
+```html
+<button data-cursor="hover">Hover grows cursor</button>
+<a href="#" data-cursor-magnet>Magnetic anchor</a>
+```
+
+Programmatic control via API:
+
+```ts
+const cursor = createCursor();
+
+// Dynamically control speeds
+cursor.setSpeed({ dot: 0.3, ring: 0.16, trail: 0.1 });
+
+// Change which elements trigger hover
+cursor.setInteractive('[data-cursor], [data-cursor="hover"], .custom-hover');
+
+// Manually drive hover state (e.g., on complex components)
+const el = document.querySelector('#cta') as HTMLElement;
+el?.addEventListener('mouseenter', () => cursor.hoverIn(el));
+el?.addEventListener('mouseleave', () => cursor.hoverOut());
+
+// Fine-grain magnet control
+cursor.addMagnet(el!);
+cursor.removeMagnet(el!);
+```
+
+Notes:
+- Elements matching the interactive selector toggle the `cc--hover` class on the cursor.
+- Magnets pull the ring toward the element’s center. They are auto-enabled for anchors and `[data-cursor-magnet]`.
+- You can theme per section using CSS variables.
+
 ## Notes
 
 Tailwind v4 compatible (utilities via `@apply` in `@layer components`).
