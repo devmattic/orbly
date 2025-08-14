@@ -22,7 +22,9 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --minify --sourcemap --clean",
-    "dev": "tsup src/index.ts --format esm --dts --watch"
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "prepare": "npm run build",
+    "release": "npm version patch && git push && git push --tags && npm publish --access public"
   },
   "devDependencies": {
     "tsup": "^8.0.1",
