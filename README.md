@@ -1,4 +1,4 @@
-# @devmattic/wisp
+# @devmattic/orbly
 A Tailwind‑first, ESM‑only custom cursor (dot + ring + trail) with magnetic link hover. Ships no CSS — you style it via Tailwind v4 (@layer components). Zero runtime deps. SSR‑safe.
 
 ## README (Tailwind v4 setup)
@@ -27,7 +27,7 @@ Add these styles to your app's Tailwind pipeline (e.g. app/globals.css, app/site
 
 ```javascript
 // main.ts
-import { createCursor } from '@devmattic/wisp';
+import { createCursor } from '@devmattic/orbly';
 
 const cursor = createCursor();
 // cursor.setColor('0,0,0');
@@ -38,7 +38,7 @@ const cursor = createCursor();
 ```javascript
 'use client';
 import { useEffect } from 'react';
-import { createCursor } from '@devmattic/wisp';
+import { createCursor } from '@devmattic/orbly';
 
 export default function CursorClient() {
   useEffect(() => { const api = createCursor(); return () => api.destroy(); }, []);
