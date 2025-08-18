@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Orbly Demo</title>
+    <!-- Tailwind CSS v4 via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      html, body { cursor: auto; }
+    </style>
+    <!-- Import map maps the package name to the local dist build for dev -->
+    <script type="importmap">
+      {
+        "imports": {
+          "orbly": "../dist/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body class="min-h-screen bg-white text-gray-900 antialiased">
+    <header class="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-gray-200">
+      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <h1 class="text-xl font-semibold tracking-tight">Orbly Cursor Demo</h1>
+        <nav class="flex gap-4 text-sm">
+          <a href="#features" class="text-gray-600 hover:text-gray-900 underline-offset-4 hover:underline">Features</a>
+          <a href="#playground" class="text-gray-600 hover:text-gray-900 underline-offset-4 hover:underline">Playground</a>
+          <a href="#dark" class="text-gray-600 hover:text-gray-900 underline-offset-4 hover:underline">Dark</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-10 space-y-16">
+      <section class="space-y-6">
+        <h2 class="text-2xl font-bold">Water-balloon Cursor Blob</h2>
+        <p class="text-gray-600 max-w-2xl">
+          Move your mouse around. The blob follows like a water-filled balloon, squishing based on motion.
+          It uses <code class="font-mono text-sm">mix-blend-mode: difference</code> to contrast with the background.
+        </p>
+        <div class="flex gap-3">
+          <a href="#" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition" data-cursor-magnet>Primary link</a>
+          <button class="px-4 py-2 border rounded hover:bg-gray-50 transition" data-cursor-magnet>Button</button>
+          <input placeholder="Type here" class="px-3 py-2 border rounded outline-none focus:ring ring-blue-200" />
+          <select class="px-3 py-2 border rounded">
+            <option>Option A</option>
+            <option>Option B</option>
+          </select>
+        </div>
+      </section>
+
+      <section id="features" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="p-6 rounded-lg border bg-white">
+          <h3 class="font-semibold mb-2">No Trail, No Ring</h3>
+          <p class="text-gray-600">Just a single animated blob plus your regular system pointer.</p>
+        </div>
+        <div class="p-6 rounded-lg border bg-white">
+          <h3 class="font-semibold mb-2">Contrast-Aware</h3>
+          <p class="text-gray-600">Blend mode keeps the blob visible on light and dark surfaces.</p>
+        </div>
+        <div class="p-6 rounded-lg border bg-white">
+          <h3 class="font-semibold mb-2">Reduced Motion Friendly</h3>
+          <p class="text-gray-600">Respects prefers-reduced-motion by disabling squish animation.</p>
+        </div>
+      </section>
+
+      <section id="playground" class="space-y-4">
+        <h2 class="text-xl font-semibold">Playground</h2>
+        <div class="flex items-center gap-4 text-sm">
+          <label class="flex items-center gap-2">
+            <span>Scale</span>
+            <input id="scale" type="range" min="0.5" max="2" step="0.05" value="1" class="w-56">
+          </label>
+          <label class="flex items-center gap-2">
+            <span>Follow</span>
+            <input id="speed" type="range" min="0.05" max="0.45" step="0.01" value="0.22" class="w-56">
+          </label>
+          <button id="toggle-dark" class="ml-auto px-3 py-2 border rounded">Toggle dark section below</button>
+        </div>
+      </section>
+
+      <section id="dark" class="rounded-xl overflow-hidden border">
+        <div class="p-8 bg-gray-900 text-gray-100">
+          <h3 class="font-semibold text-lg mb-2">Dark surface</h3>
+          <p class="text-gray-300 mb-4">Hover the controls and links to see the blob contrast.</p>
+          <div class="flex gap-3">
+            <a href="#" class="px-4 py-2 bg-emerald-500 text-gray-900 rounded hover:bg-emerald-400 transition" data-cursor-magnet>Call to Action</a>
+            <button class="px-4 py-2 bg-gray-800 text-gray-100 rounded hover:bg-gray-700 transition" data-cursor-magnet>Dark Button</button>
+          </div>
+        </div>
+        <div class="p-8 bg-white text-gray-900">
+          <p class="text-gray-600">Mixed surfaces in one section to challenge contrast handling.</p>
+        </div>
+      </section>
+
+      <section class="h-64 overflow-auto rounded border">
+        <div class="min-h-[32rem] p-6 space-y-2">
+          <p class="text-gray-600">Scrollable area (try fast moves to see squish):</p>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="h-24 rounded bg-gray-100"></div>
+            <div class="h-24 rounded bg-gray-200"></div>
+            <div class="h-24 rounded bg-gray-300"></div>
+            <div class="h-24 rounded bg-gray-400"></div>
+            <div class="h-24 rounded bg-gray-500"></div>
+            <div class="h-24 rounded bg-gray-600"></div>
+            <div class="h-24 rounded bg-gray-700"></div>
+            <div class="h-24 rounded bg-gray-800"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="max-w-6xl mx-auto px-6 py-10 text-sm text-gray-500">
+      <p>Orbly demo. Uses Tailwind CSS v4.</p>
+    </footer>
+
+    <script type="module">
+      import { createCursor } from 'orbly';
+
+      const api = createCursor();
+
+      // Playground controls
+      const scale = document.getElementById('scale');
+      const speed = document.getElementById('speed');
+      scale?.addEventListener('input', () => api.setScale(parseFloat(scale.value)));
+      speed?.addEventListener('input', () => api.setSpeed({ blob: parseFloat(speed.value) }));
+
+      const darkSection = document.getElementById('dark');
+      const toggleDarkBtn = document.getElementById('toggle-dark');
+      toggleDarkBtn?.addEventListener('click', () => {
+        const first = darkSection.querySelector(':scope > div:nth-child(1)');
+        const second = darkSection.querySelector(':scope > div:nth-child(2)');
+        if (first && second) {
+          const firstIsDark = first.classList.contains('bg-gray-900');
+          if (firstIsDark) {
+            first.className = 'p-8 bg-white text-gray-900';
+            second.className = 'p-8 bg-gray-900 text-gray-100';
+          } else {
+            first.className = 'p-8 bg-gray-900 text-gray-100';
+            second.className = 'p-8 bg-white text-gray-900';
+          }
+        }
+      });
+
+      // Expose for quick debugging in console
+      window.orbly = api;
+    </script>
+  </body>
+</html>
+

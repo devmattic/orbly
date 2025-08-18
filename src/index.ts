@@ -119,6 +119,18 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
 
   const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
+  // hover/active boost state
+  let boost = 1; // current animated boost
+  const boostLerp = 0.25; // smoothing for boost transitions
+
+  const computeTargetBoost = () => {
+    // Base is 1, hover adds +0.15, active adds +0.1 (stackable)
+    let b = 1;
+    if (root.classList.contains('cc--hover')) b += 0.15;
+    if (root.classList.contains('cc--down')) b += 0.1;
+    return b;
+  };
+
   const tick = () => {
     let target = { ...mouse };
     // magnet support
@@ -136,10 +148,14 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
 
     // squish based on velocity (water-balloon like)
     const squish = reduceMotion ? 0 : clamp(speedLen / 25, 0, 0.35);
-    const scaleX = 1 + squish;
-    const scaleY = 1 - squish;
+    const scaleX = (1 + squish);
+    const scaleY = (1 - squish);
 
-    blob.style.transform = `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%) rotate(${angle}rad) scale(${scaleX}, ${scaleY})`;
+    // apply hover/active boost smoothly
+    const targetBoost = computeTargetBoost();
+    boost = reduceMotion ? targetBoost : lerp(boost, targetBoost, boostLerp);
+
+    blob.style.transform = `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%) rotate(${angle}rad) scale(${scaleX * boost}, ${scaleY * boost})`;
 
     prev.x = pos.x; prev.y = pos.y;
     raf = requestAnimationFrame(tick);
