@@ -1,7 +1,7 @@
 {
   "name": "@devmattic/orbly",
   "version": "0.1.2",
-  "description": "Tailwind-first blended custom cursor (dot+ring+trail) with magnetic hover.",
+  "description": "Tailwind-first blended custom blob cursor with magnetic hover.",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -25,9 +25,11 @@
     "dev": "tsup src/index.ts --format esm --dts --watch",
     "prepare": "npm run build",
     "release:dry": "npm version patch --no-git-tag-version && npm run build && npm pack --dry-run",
-    "release": "standard-version && git push --follow-tags origin main && npm publish --access public"
+    "release": "standard-version && git push --follow-tags origin main && npm publish --access public",
+    "demo": "npm run build && serve -l 5173 . && open http://localhost:5173/demo/"
   },
   "devDependencies": {
+    "serve": "^14.2.1",
     "standard-version": "^9.5.0",
     "tsup": "^8.0.1",
     "typescript": "^5.6.3"
