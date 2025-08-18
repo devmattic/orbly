@@ -144,6 +144,10 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   // blobiness (max distortion)
   let blobiness = clamp(blobinessOpt, 0, 1);
 
+  // Lava-lamp wobble state
+  let wob = { x: 1, y: 1 };
+  const wobLerp = 0.12; // smoothing for wobble transitions
+
   const computeTargetBoost = () => {
     // Base is 1, hover adds +0.15, active adds +0.1 (stackable)
     let b = 1;
@@ -151,7 +155,6 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     if (root.classList.contains('cc--down')) b += 0.1;
     return b;
   };
-
   const tick = () => {
     let target = { ...mouse };
     // magnet support
@@ -165,12 +168,30 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     const vx = pos.x - prev.x;
     const vy = pos.y - prev.y;
     const speedLen = Math.hypot(vx, vy);
-    const angle = Math.atan2(vy, vx);
+    let angle = Math.atan2(vy, vx);
 
     // squish based on velocity (water-balloon like)
     const squish = reduceMotion ? 0 : clamp(speedLen / 25, 0, blobiness);
-    const scaleX = (1 + squish);
-    const scaleY = (1 - squish);
+    let scaleX = (1 + squish);
+    let scaleY = (1 - squish);
+
+    // Lava-lamp wobble: organic time-based morphing
+    if (!reduceMotion) {
+      const t = performance.now() / 1000; // seconds
+      // amplitude scaled by blobiness
+      const amp = blobiness * 0.5; // cap wobble
+      // two incommensurate frequencies for wobble
+      const f1 = 0.9, f2 = 1.37;
+      const f3 = 0.63, f4 = 1.21;
+      const targetWobX = 1 + amp * (0.18 * Math.sin(t * 2 * Math.PI * f1) + 0.12 * Math.sin(t * 2 * Math.PI * f2 + 1.2));
+      const targetWobY = 1 + amp * (0.16 * Math.sin(t * 2 * Math.PI * f3 + 0.7) + 0.10 * Math.sin(t * 2 * Math.PI * f4 + 2.1));
+      wob.x = lerp(wob.x, targetWobX, wobLerp);
+      wob.y = lerp(wob.y, targetWobY, wobLerp);
+      scaleX *= wob.x;
+      scaleY *= wob.y;
+      // slight angle wobble for more organic feel
+      angle += amp * 0.25 * Math.sin(t * 2 * Math.PI * 0.33);
+    }
 
     // apply hover/active boost smoothly
     const targetBoost = computeTargetBoost();
