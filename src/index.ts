@@ -4,6 +4,14 @@ export type OrblyOptions = {
   startY?: number;
   // smoothing for blob follow (0..1). Higher is snappier.
   speed?: { blob?: number };
+  // initial size in pixels of the blob (width/height)
+  size?: number;
+  // any valid CSS color (used as currentColor for mix-blend-mode: difference)
+  color?: string;
+  // 0..1 element opacity
+  opacity?: number;
+  // maximum distortion from velocity (0..1), default 0.35
+  blobiness?: number;
   respectReducedMotion?: boolean;
   container?: HTMLElement;
 };
@@ -12,9 +20,12 @@ export type OrblyOptions = {
 export type OrblyAPI = {
   destroy(): void;
   setScale(scale: number): void;
-  setColor(rgb: string): void;
+  setColor(color: string): void;
   setSpeed(next: { blob?: number }): void;
   setInteractive(selector: string): void;
+  setSize(px: number): void;
+  setOpacity(alpha: number): void;
+  setBlobiness(amount: number): void;
   hoverIn(el?: HTMLElement | null): void;
   hoverOut(): void;
   addMagnet(el: HTMLElement): void;
@@ -29,14 +40,14 @@ const lerp = (a: number, b: number, n: number) => (1 - n) * a + n * b;
 export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   if (!hasWindow) {
     return {
-      destroy() {}, setScale() {}, setColor() {}, setSpeed() {}, setInteractive() {}, hoverIn() {}, hoverOut() {}, addMagnet() {}, removeMagnet() {},
+      destroy() {}, setScale() {}, setColor() {}, setSpeed() {}, setInteractive() {}, setSize() {}, setOpacity() {}, setBlobiness() {}, hoverIn() {}, hoverOut() {}, addMagnet() {}, removeMagnet() {},
       getElements() { throw new Error('SSR context'); }
     } as OrblyAPI;
   }
   const isFinePointer = matchMedia('(pointer: fine)').matches;
   if (!isFinePointer) {
     return {
-      destroy() {}, setScale() {}, setColor() {}, setSpeed() {}, setInteractive() {}, hoverIn() {}, hoverOut() {}, addMagnet() {}, removeMagnet() {},
+      destroy() {}, setScale() {}, setColor() {}, setSpeed() {}, setInteractive() {}, setSize() {}, setOpacity() {}, setBlobiness() {}, hoverIn() {}, hoverOut() {}, addMagnet() {}, removeMagnet() {},
       getElements() { throw new Error('Disabled on coarse pointers'); }
     } as OrblyAPI;
   }
@@ -46,6 +57,10 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     startX = window.innerWidth / 2,
     startY = window.innerHeight / 2,
     speed = { blob: 0.22 },
+    size = 20,
+    color = '#ffffff',
+    opacity = 1,
+    blobiness: blobinessOpt = 0.35,
     respectReducedMotion = true,
     container = document.body
   } = opts;
@@ -72,15 +87,16 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     position: 'fixed',
     left: '0px',
     top: '0px',
-    width: '20px',
-    height: '20px',
+    width: `${size}px`,
+    height: `${size}px`,
     borderRadius: '9999px',
     background: 'currentColor',
-    color: 'white',
+    color,
     mixBlendMode: 'difference', // ensures high contrast against background
     transform: 'translate(-50%, -50%) scale(var(--cursor-scale, 1))',
     willChange: 'transform',
     pointerEvents: 'none',
+    opacity: String(Math.max(0, Math.min(1, opacity))),
   } as Partial<CSSStyleDeclaration>);
 
   let mouse = { x: startX, y: startY };
@@ -123,6 +139,9 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   let boost = 1; // current animated boost
   const boostLerp = 0.25; // smoothing for boost transitions
 
+  // blobiness (max distortion)
+  let blobiness = clamp(blobinessOpt, 0, 1);
+
   const computeTargetBoost = () => {
     // Base is 1, hover adds +0.15, active adds +0.1 (stackable)
     let b = 1;
@@ -147,7 +166,7 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     const angle = Math.atan2(vy, vx);
 
     // squish based on velocity (water-balloon like)
-    const squish = reduceMotion ? 0 : clamp(speedLen / 25, 0, 0.35);
+    const squish = reduceMotion ? 0 : clamp(speedLen / 25, 0, blobiness);
     const scaleX = (1 + squish);
     const scaleY = (1 - squish);
 
@@ -184,11 +203,14 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   }
 
   function setScale(scale: number) { (root as HTMLElement).style.setProperty('--cursor-scale', String(scale)); }
-  function setColor(rgb: string) { (root as HTMLElement).style.setProperty('--cursor-color', rgb); blob.style.color = rgb; }
+  function setColor(nextColor: string) { (root as HTMLElement).style.setProperty('--cursor-color', nextColor); blob.style.color = nextColor; }
   function setSpeed(next: { blob?: number }) {
     speeds = { blob: next.blob ?? speeds.blob };
   }
   function setInteractive(selector: string) { interactive = selector; }
+  function setSize(px: number) { const v = Math.max(1, px|0); blob.style.width = `${v}px`; blob.style.height = `${v}px`; }
+  function setOpacity(alpha: number) { const a = clamp(alpha, 0, 1); blob.style.opacity = String(a); }
+  function setBlobiness(amount: number) { blobiness = clamp(amount, 0, 1); }
   function hoverIn(el?: HTMLElement | null) {
     root.classList.add('cc--hover');
     if (el && !magnets.has(el) && (el.tagName?.toLowerCase?.() === 'a' || el.hasAttribute('data-cursor-magnet'))) magnets.add(el);
@@ -200,5 +222,5 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   function addMagnet(el: HTMLElement) { magnets.add(el); }
   function removeMagnet(el: HTMLElement) { if (magnets.has(el)) magnets.delete(el); }
 
-  return { destroy, setScale, setColor, setSpeed, setInteractive, hoverIn, hoverOut, addMagnet, removeMagnet, getElements: () => ({ root, blob }) };
+  return { destroy, setScale, setColor, setSpeed, setInteractive, setSize, setOpacity, setBlobiness, hoverIn, hoverOut, addMagnet, removeMagnet, getElements: () => ({ root, blob }) };
 }
