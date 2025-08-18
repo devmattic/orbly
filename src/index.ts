@@ -191,7 +191,14 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   }
   // Sample the first opaque background color under a point
   function getBackgroundRGBAAt(x: number, y: number): { r: number; g: number; b: number; a: number } | null {
+    // Make sure we don't sample the blob itself. Although pointer-events is none,
+    // some environments can still return overlaying elements. Temporarily hide it.
+    const prevVis = blob.style.visibility;
+    blob.style.visibility = 'hidden';
     const el = document.elementFromPoint(x, y) as HTMLElement | null;
+    // restore immediately
+    blob.style.visibility = prevVis;
+
     let cur: HTMLElement | null = el;
     while (cur) {
       const bg = getComputedStyle(cur).backgroundColor;
@@ -286,13 +293,14 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
       const bg = getBackgroundRGBAAt(pos.x, pos.y);
       if (bg) {
         if (isWhiteLike(baseColorRGBA)) {
-          // Default behavior for white-like base: use difference with B/W for maximum contrast
+          // For white-like base colors, rely on mix-blend-mode: difference and pick
+          // black or white based on the sampled background each cycle.
           if (blob.style.mixBlendMode !== 'difference') blob.style.mixBlendMode = 'difference';
-          const bw = pickContrastBW(bg);
-          if (bw !== lastAutoColor) {
-            blob.style.color = bw;
-            (root as HTMLElement).style.setProperty('--cursor-color', bw);
-            lastAutoColor = bw;
+          const desired = pickContrastBW(bg);
+          if (desired !== lastAutoColor) {
+            blob.style.color = desired;
+            (root as HTMLElement).style.setProperty('--cursor-color', desired);
+            lastAutoColor = desired;
           }
         } else {
           // For custom colors: keep the exact color if it already contrasts enough; otherwise compute per-channel difference
