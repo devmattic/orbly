@@ -12,6 +12,8 @@ export type OrblyOptions = {
   opacity?: number;
   // maximum distortion from velocity (0..1), default 0.35
   blobiness?: number;
+  // auto switch blob color to maintain contrast on non-isolated/light surfaces
+  autoContrast?: boolean;
   respectReducedMotion?: boolean;
   container?: HTMLElement;
 };
@@ -26,6 +28,7 @@ export type OrblyAPI = {
   setSize(px: number): void;
   setOpacity(alpha: number): void;
   setBlobiness(amount: number): void;
+  setAutoContrast(on: boolean): void;
   hoverIn(el?: HTMLElement | null): void;
   hoverOut(): void;
   addMagnet(el: HTMLElement): void;
@@ -40,14 +43,14 @@ const lerp = (a: number, b: number, n: number) => (1 - n) * a + n * b;
 export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   if (!hasWindow) {
     return {
-      destroy() {}, setScale() {}, setColor() {}, setSpeed() {}, setInteractive() {}, setSize() {}, setOpacity() {}, setBlobiness() {}, hoverIn() {}, hoverOut() {}, addMagnet() {}, removeMagnet() {},
+      destroy() {}, setScale() {}, setColor() {}, setSpeed() {}, setInteractive() {}, setSize() {}, setOpacity() {}, setBlobiness() {}, setAutoContrast() {}, hoverIn() {}, hoverOut() {}, addMagnet() {}, removeMagnet() {},
       getElements() { throw new Error('SSR context'); }
     } as OrblyAPI;
   }
   const isFinePointer = matchMedia('(pointer: fine)').matches;
   if (!isFinePointer) {
     return {
-      destroy() {}, setScale() {}, setColor() {}, setSpeed() {}, setInteractive() {}, setSize() {}, setOpacity() {}, setBlobiness() {}, hoverIn() {}, hoverOut() {}, addMagnet() {}, removeMagnet() {},
+      destroy() {}, setScale() {}, setColor() {}, setSpeed() {}, setInteractive() {}, setSize() {}, setOpacity() {}, setBlobiness() {}, setAutoContrast() {}, hoverIn() {}, hoverOut() {}, addMagnet() {}, removeMagnet() {},
       getElements() { throw new Error('Disabled on coarse pointers'); }
     } as OrblyAPI;
   }
@@ -61,6 +64,7 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     color = '#ffffff',
     opacity = .75,
     blobiness: blobinessOpt = 0.25,
+    autoContrast = true,
     respectReducedMotion = true,
     container = document.body
   } = opts;
@@ -94,7 +98,7 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     borderRadius: '9999px',
     background: 'currentColor',
     color,
-    mixBlendMode: 'difference', // ensures high contrast against background
+    mixBlendMode: 'difference', // default: ensures high contrast against background with white/black
     transform: 'translate(-50%, -50%) scale(var(--cursor-scale, 1))',
     willChange: 'transform',
     pointerEvents: 'none',
@@ -137,6 +141,60 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
 
   const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
+  // Utility: parse rgb/rgba() to {r,g,b,a}
+  function parseRGBA(input: string): { r: number; g: number; b: number; a: number } | null {
+    const m = input.trim().match(/^rgba?\(([^)]+)\)$/i);
+    if (!m) return null;
+    const parts = m[1].split(',').map(s => s.trim());
+    if (parts.length < 3) return null;
+    const r = parseFloat(parts[0]);
+    const g = parseFloat(parts[1]);
+    const b = parseFloat(parts[2]);
+    const a = parts[3] !== undefined ? parseFloat(parts[3]) : 1;
+    return { r, g, b, a: isNaN(a) ? 1 : a };
+  }
+  // Resolve any valid CSS color to RGBA using computed styles
+  function resolveColorToRGBA(input: string): { r: number; g: number; b: number; a: number } | null {
+    const tmp = document.createElement('div');
+    tmp.style.color = input;
+    document.body.appendChild(tmp);
+    const computed = getComputedStyle(tmp).color;
+    tmp.remove();
+    return parseRGBA(computed || '');
+  }
+  function relLuminance({ r, g, b }: { r: number; g: number; b: number }): number {
+    const srgb = [r, g, b].map(v => v / 255).map(u => (u <= 0.03928 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4)));
+    return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  }
+  function contrastRatio(c1: { r: number; g: number; b: number }, c2: { r: number; g: number; b: number }): number {
+    const L1 = relLuminance(c1);
+    const L2 = relLuminance(c2);
+    const [bright, dark] = L1 >= L2 ? [L1, L2] : [L2, L1];
+    return (bright + 0.05) / (dark + 0.05);
+  }
+  // Sample the first opaque background color under a point
+  function getBackgroundRGBAAt(x: number, y: number): { r: number; g: number; b: number; a: number } | null {
+    const el = document.elementFromPoint(x, y) as HTMLElement | null;
+    let cur: HTMLElement | null = el;
+    while (cur) {
+      const bg = getComputedStyle(cur).backgroundColor;
+      const rgba = parseRGBA(bg || '');
+      if (rgba && rgba.a > 0) return rgba;
+      cur = cur.parentElement;
+    }
+    const bodyBg = getComputedStyle(document.body).backgroundColor;
+    return parseRGBA(bodyBg || '');
+  }
+  function pickContrastBW({ r, g, b, a }: { r: number; g: number; b: number; a: number }): string {
+    const L = relLuminance({ r, g, b });
+    return L > 0.5 ? '#000000' : '#ffffff';
+  }
+  function rgbaToString({ r, g, b, a }: { r: number; g: number; b: number; a: number }): string {
+    const rr = Math.round(r), gg = Math.round(g), bb = Math.round(b);
+    const aa = Math.max(0, Math.min(1, a));
+    return aa === 1 ? `rgb(${rr}, ${gg}, ${bb})` : `rgba(${rr}, ${gg}, ${bb}, ${aa})`;
+  }
+
   // hover/active boost state
   let boost = 1; // current animated boost
   const boostLerp = 0.25; // smoothing for boost transitions
@@ -155,6 +213,14 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     if (root.classList.contains('cc--down')) b += 0.1;
     return b;
   };
+  let lastContrastAt = 0;
+  let autoContrastOn = !!autoContrast;
+  let lastAutoColor: string | null = null;
+  // Track the base (requested) color and whether we should use computed-difference mode
+  let baseColorStr: string = color;
+  let baseColorRGBA = resolveColorToRGBA(baseColorStr) || { r: 255, g: 255, b: 255, a: 1 };
+  const isWhiteLike = (c: { r: number; g: number; b: number }) => c.r > 250 && c.g > 250 && c.b > 250;
+
   const tick = () => {
     let target = { ...mouse };
     // magnet support
@@ -197,6 +263,53 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     const targetBoost = computeTargetBoost();
     boost = reduceMotion ? targetBoost : lerp(boost, targetBoost, boostLerp);
 
+    // auto-contrast: occasionally adjust color to maintain visibility
+    const now = performance.now();
+    if (autoContrastOn && now - lastContrastAt > 80) {
+      const bg = getBackgroundRGBAAt(pos.x, pos.y);
+      if (bg) {
+        if (isWhiteLike(baseColorRGBA)) {
+          // Default behavior for white-like base: use difference with B/W for maximum contrast
+          if (blob.style.mixBlendMode !== 'difference') blob.style.mixBlendMode = 'difference';
+          const bw = pickContrastBW(bg);
+          if (bw !== lastAutoColor) {
+            blob.style.color = bw;
+            (root as HTMLElement).style.setProperty('--cursor-color', bw);
+            lastAutoColor = bw;
+          }
+        } else {
+          // For custom colors: keep the exact color if it already contrasts enough; otherwise compute per-channel difference
+          const cr = contrastRatio(baseColorRGBA, bg);
+          const MIN_CR = 2.6; // heuristic threshold for small, semi-opaque blob
+          if (cr >= MIN_CR) {
+            // Use the exact chosen color, normal blend
+            if (blob.style.mixBlendMode !== 'normal') blob.style.mixBlendMode = 'normal';
+            if (baseColorStr !== lastAutoColor) {
+              blob.style.color = baseColorStr;
+              (root as HTMLElement).style.setProperty('--cursor-color', baseColorStr);
+              lastAutoColor = baseColorStr;
+            }
+          } else {
+            // Compute per-channel difference to pop on light/low-contrast surfaces
+            const diff = {
+              r: Math.abs(bg.r - baseColorRGBA.r),
+              g: Math.abs(bg.g - baseColorRGBA.g),
+              b: Math.abs(bg.b - baseColorRGBA.b),
+              a: 1,
+            };
+            const out = rgbaToString(diff);
+            if (blob.style.mixBlendMode !== 'normal') blob.style.mixBlendMode = 'normal';
+            if (out !== lastAutoColor) {
+              blob.style.color = out;
+              (root as HTMLElement).style.setProperty('--cursor-color', out);
+              lastAutoColor = out;
+            }
+          }
+        }
+      }
+      lastContrastAt = now;
+    }
+
     blob.style.transform = `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%) rotate(${angle}rad) scale(${scaleX * boost}, ${scaleY * boost})`;
 
     prev.x = pos.x; prev.y = pos.y;
@@ -226,7 +339,14 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   }
 
   function setScale(scale: number) { (root as HTMLElement).style.setProperty('--cursor-scale', String(scale)); }
-  function setColor(nextColor: string) { (root as HTMLElement).style.setProperty('--cursor-color', nextColor); blob.style.color = nextColor; }
+  function setColor(nextColor: string) {
+    baseColorStr = nextColor;
+    baseColorRGBA = resolveColorToRGBA(baseColorStr) || baseColorRGBA;
+    (root as HTMLElement).style.setProperty('--cursor-color', nextColor);
+    blob.style.color = nextColor;
+    // Reset cache so auto-contrast updates on next frame
+    lastAutoColor = null;
+  }
   function setSpeed(next: { blob?: number }) {
     speeds = { blob: next.blob ?? speeds.blob };
   }
@@ -234,6 +354,7 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   function setSize(px: number) { const v = Math.max(1, px|0); blob.style.width = `${v}px`; blob.style.height = `${v}px`; }
   function setOpacity(alpha: number) { const a = clamp(alpha, 0, 1); blob.style.opacity = String(a); }
   function setBlobiness(amount: number) { blobiness = clamp(amount, 0, 1); }
+  function setAutoContrast(on: boolean) { autoContrastOn = !!on; }
   function hoverIn(el?: HTMLElement | null) {
     root.classList.add('cc--hover');
     if (el && !magnets.has(el) && (el.tagName?.toLowerCase?.() === 'a' || el.hasAttribute('data-cursor-magnet'))) magnets.add(el);
@@ -245,5 +366,5 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   function addMagnet(el: HTMLElement) { magnets.add(el); }
   function removeMagnet(el: HTMLElement) { if (magnets.has(el)) magnets.delete(el); }
 
-  return { destroy, setScale, setColor, setSpeed, setInteractive, setSize, setOpacity, setBlobiness, hoverIn, hoverOut, addMagnet, removeMagnet, getElements: () => ({ root, blob }) };
+  return { destroy, setScale, setColor, setSpeed, setInteractive, setSize, setOpacity, setBlobiness, setAutoContrast, hoverIn, hoverOut, addMagnet, removeMagnet, getElements: () => ({ root, blob }) };
 }
