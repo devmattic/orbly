@@ -73,7 +73,7 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
 
   // Root container and single "blob" element
   const root = document.createElement('div');
-  root.className = 'cc cc--hidden';
+  root.className = 'cc';
   // Default to 5x larger blob initially
   (root as HTMLElement).style.setProperty('--cursor-scale', '5');
   const blob = document.createElement('div');
@@ -88,6 +88,7 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     pointerEvents: 'none',
     zIndex: '2147483647',
     contain: 'layout style paint',
+    visibility: 'hidden', // start hidden until we detect real mouse movement inside the window
   } as Partial<CSSStyleDeclaration>);
   Object.assign(blob.style, {
     position: 'fixed',
@@ -110,9 +111,20 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   let prev = { x: startX, y: startY };
   const magnets = new Set<HTMLElement>();
 
-  const onMouseMove = (e: MouseEvent) => { mouse.x = e.clientX; mouse.y = e.clientY; root.classList.remove('cc--hidden'); };
-  const onLeave = () => root.classList.add('cc--hidden');
-  const onEnter = () => root.classList.remove('cc--hidden');
+  // visibility control
+  let hasEverMovedInside = false;
+  const show = () => { root.style.visibility = 'visible'; };
+  const hide = () => { root.style.visibility = 'hidden'; };
+
+  const onMouseMove = (e: MouseEvent) => {
+    mouse.x = e.clientX; mouse.y = e.clientY;
+    hasEverMovedInside = true;
+    show();
+  };
+  const onLeave = () => { hide(); };
+  // Only show on enter if we have previously seen movement inside the window
+  // This prevents showing on first load when the cursor is outside the window
+  const onEnter = () => { if (hasEverMovedInside) show(); };
   const onDown = () => root.classList.add('cc--down');
   const onUp   = () => root.classList.remove('cc--down');
   const onOver = (e: MouseEvent) => {
@@ -135,6 +147,11 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   window.addEventListener('mouseup', onUp);
   document.addEventListener('mouseover', onOver as any);
   document.addEventListener('mouseout', onOut as any);
+  // Hide when tab loses visibility or window blurs
+  const onVisibility = () => { if (document.visibilityState !== 'visible') hide(); };
+  const onBlur = () => { hide(); };
+  document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('blur', onBlur);
 
   let raf = 0;
   let speeds = { blob: speed.blob ?? 0.22 };
@@ -335,6 +352,8 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     window.removeEventListener('mouseup', onUp);
     document.removeEventListener('mouseover', onOver as any);
     document.removeEventListener('mouseout', onOut as any);
+    document.removeEventListener('visibilitychange', onVisibility);
+    window.removeEventListener('blur', onBlur);
     root.remove();
   }
 
