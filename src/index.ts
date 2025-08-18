@@ -101,9 +101,9 @@ export function createCursor(opts: CursorOptions = {}): CursorAPI {
     ringPos.y = lerp(ringPos.y, target.y, speeds.ring);
     trailPos.x = lerp(trailPos.x, mouse.x, speeds.trail);
     trailPos.y = lerp(trailPos.y, mouse.y, speeds.trail);
-    (dot  as HTMLElement).style.transform   = `translate(${dotPos.x}px, ${dotPos.y}px) translate(-50%, -50%) var(--cursor-dot-extra, '')`;
-    (ring as HTMLElement).style.transform  = `translate(${ringPos.x}px, ${ringPos.y}px) translate(-50%, -50%) var(--cursor-ring-extra, '')`;
-    (trail as HTMLElement).style.transform = `translate(${trailPos.x}px, ${trailPos.y}px) translate(-50%, -50%)`;
+    dot.style.transform   = `translate(${dotPos.x}px, ${dotPos.y}px) translate(-50%, -50%) scale(var(--cursor-scale))`;
+    ring.style.transform  = `translate(${ringPos.x}px, ${ringPos.y}px) translate(-50%, -50%) scale(var(--cursor-scale))`;
+    trail.style.transform = `translate(${trailPos.x}px, ${trailPos.y}px) translate(-50%, -50%)`;
     raf = requestAnimationFrame(tick);
   };
 
