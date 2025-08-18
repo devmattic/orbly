@@ -1,5 +1,5 @@
 # @devmattic/orbly
-A Tailwind‑first, ESM‑only custom cursor (dot + ring + trail) with magnetic link hover. Ships no CSS — you style it via Tailwind v4 (@layer components). Zero runtime deps. SSR‑safe.
+A Tailwind‑first, ESM‑only custom blob cursor (dot + ring + trail) with magnetic hover. Ships no CSS — you style it via Tailwind v4 (@layer components). Zero runtime deps. SSR‑safe.
 
 ## README (Tailwind v4 setup)
 Add these styles to your app's Tailwind pipeline (e.g. app/globals.css, app/site.cs, etc)
@@ -25,23 +25,32 @@ Add these styles to your app's Tailwind pipeline (e.g. app/globals.css, app/site
 
 ### Install & use
 
-```javascript
-// main.ts
-import { createCursor } from '@devmattic/orbly';
+```ts
+// main.ts (TypeScript)
+import { createCursor, type OrblyAPI, type OrblyOptions } from '@devmattic/orbly';
 
-const cursor = createCursor();
+const options: OrblyOptions = {
+  // interactive: '[data-cursor], a, button',
+  // startX: window.innerWidth / 2,
+  // startY: window.innerHeight / 2,
+};
+
+const cursor: OrblyAPI = createCursor(options);
 // cursor.setColor('0,0,0');
 // cursor.setScale(1.2);
 ```
 
 ### Next.js (client component version)
-```javascript
+```tsx
 'use client';
 import { useEffect } from 'react';
-import { createCursor } from '@devmattic/orbly';
+import { createCursor, type OrblyAPI } from '@devmattic/orbly';
 
 export default function CursorClient() {
-  useEffect(() => { const api = createCursor(); return () => api.destroy(); }, []);
+  useEffect(() => {
+    const api: OrblyAPI = createCursor();
+    return () => api.destroy();
+  }, []);
   return null;
 }
 ```
@@ -64,10 +73,12 @@ Opt-in any element for hover scale using data attributes and optional magnet beh
 <a href="#" data-cursor-magnet>Magnetic anchor</a>
 ```
 
-Programmatic control via API:
+Programmatic control via OrblyAPI:
 
 ```ts
-const cursor = createCursor();
+import { createCursor, type OrblyAPI } from '@devmattic/orbly';
+
+const cursor: OrblyAPI = createCursor();
 
 // Dynamically control speeds
 cursor.setSpeed({ dot: 0.3, ring: 0.16, trail: 0.1 });
@@ -90,15 +101,21 @@ Notes:
 - Magnets pull the ring toward the element’s center. They are auto-enabled for anchors and `[data-cursor-magnet]`.
 - You can theme per section using CSS variables.
 
+## Types
+
+This package exposes types for TypeScript users:
+
+```ts
+import type { OrblyAPI, OrblyOptions } from '@devmattic/orbly';
+```
+
+
 ## Notes
 
-Tailwind v4 compatible (utilities via `@apply` in `@layer components`).
-
-ESM‑only; SSR‑safe no‑op on server.
-
-No CSS bundled; your Tailwind build owns styles.
-
-Zero dependencies; tiny footprint.
+- Tailwind v4 compatible (utilities via `@apply` in `@layer components`).
+- ESM‑only; SSR‑safe no‑op on server.
+- No CSS bundled; your Tailwind build owns styles.
+- Zero dependencies; tiny footprint.
 
 ## License
 

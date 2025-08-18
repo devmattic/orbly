@@ -1,7 +1,7 @@
 {
   "name": "@devmattic/orbly",
   "version": "0.1.2",
-  "description": "Tailwind-first blended custom cursor (dot+ring+trail) with magnetic hover.",
+  "description": "Tailwind-first blended custom blob cursor with magnetic hover.",
   "type": "module",
   "license": "MIT",
   "repository": {

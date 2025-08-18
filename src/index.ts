@@ -1,4 +1,4 @@
-export type CursorOptions = {
+export type OrblyOptions = {
   interactive?: string;
   startX?: number;
   startY?: number;
@@ -7,7 +7,8 @@ export type CursorOptions = {
   container?: HTMLElement;
 };
 
-export type CursorAPI = {
+
+export type OrblyAPI = {
   destroy(): void;
   setScale(scale: number): void;
   setColor(rgb: string): void;
@@ -20,22 +21,23 @@ export type CursorAPI = {
   getElements(): { root: HTMLElement; dot: HTMLElement; ring: HTMLElement; trail: HTMLElement };
 };
 
+
 const hasWindow = typeof window !== 'undefined' && typeof document !== 'undefined';
 const lerp = (a: number, b: number, n: number) => (1 - n) * a + n * b;
 
-export function createCursor(opts: CursorOptions = {}): CursorAPI {
+export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   if (!hasWindow) {
     return {
       destroy() {}, setScale() {}, setColor() {}, setSpeed() {}, setInteractive() {}, hoverIn() {}, hoverOut() {}, addMagnet() {}, removeMagnet() {},
       getElements() { throw new Error('SSR context'); }
-    } as CursorAPI;
+    } as OrblyAPI;
   }
   const isFinePointer = matchMedia('(pointer: fine)').matches;
   if (!isFinePointer) {
     return {
       destroy() {}, setScale() {}, setColor() {}, setSpeed() {}, setInteractive() {}, hoverIn() {}, hoverOut() {}, addMagnet() {}, removeMagnet() {},
       getElements() { throw new Error('Disabled on coarse pointers'); }
-    } as CursorAPI;
+    } as OrblyAPI;
   }
 
   let interactive = opts.interactive ?? 'a, button, [role="button"], input, textarea, select, summary, .is-interactive, [data-cursor], [data-cursor="hover"]';
