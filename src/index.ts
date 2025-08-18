@@ -57,10 +57,10 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     startX = window.innerWidth / 2,
     startY = window.innerHeight / 2,
     speed = { blob: 0.22 },
-    size = 20,
+    size = 100,
     color = '#ffffff',
-    opacity = 1,
-    blobiness: blobinessOpt = 0.35,
+    opacity = .75,
+    blobiness: blobinessOpt = 0.25,
     respectReducedMotion = true,
     container = document.body
   } = opts;
@@ -70,6 +70,8 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   // Root container and single "blob" element
   const root = document.createElement('div');
   root.className = 'cc cc--hidden';
+  // Default to 5x larger blob initially
+  (root as HTMLElement).style.setProperty('--cursor-scale', '5');
   const blob = document.createElement('div');
   blob.className = 'cc__blob';
   root.append(blob);
