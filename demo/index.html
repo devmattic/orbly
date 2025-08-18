@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Orbly – Demo</title>
+    <!-- Tailwind CSS v4 via browser CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      html, body { cursor: auto; }
+      .tabular-nums { font-variant-numeric: tabular-nums; }
+    </style>
+    <!-- Import map to use local build while developing -->
+    <script type="importmap">
+      {
+        "imports": {
+          "orbly": "../dist/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body id="page" class="min-h-screen bg-gray-900 text-gray-100 antialiased">
+    <!-- Controls Bar (Sticky) -->
+    <section id="controls" class="sticky top-0 z-20 bg-gray-900/80 backdrop-blur border-b border-gray-800">
+      <div class="max-w-6xl mx-auto px-6 py-4">
+        <div class="flex flex-wrap items-center gap-4 text-sm">
+          <div class="font-semibold mr-2">Controls</div>
+
+          <label class="flex items-center gap-2">
+            <span>Scale</span>
+            <input id="scale" type="range" min="0.5" max="10" step="0.05" value="5" class="w-48">
+            <span id="scaleVal" class="tabular-nums">5.00x</span>
+          </label>
+
+          <label class="flex items-center gap-2">
+            <span>Follow</span>
+            <input id="speed" type="range" min="0.05" max="0.45" step="0.01" value="0.22" class="w-40">
+            <span id="speedVal" class="tabular-nums">0.22</span>
+          </label>
+
+          <label class="flex items-center gap-2">
+            <span>Size</span>
+            <input id="size" type="range" min="8" max="160" step="1" value="100" class="w-40">
+            <span id="sizeVal" class="tabular-nums">100px</span>
+          </label>
+
+          <label class="flex items-center gap-2">
+            <span>Opacity</span>
+            <input id="opacity" type="range" min="0" max="1" step="0.01" value="0.75" class="w-32">
+            <span id="opacityVal" class="tabular-nums">0.75</span>
+          </label>
+
+          <label class="flex items-center gap-2">
+            <span>Blobiness</span>
+            <input id="blobiness" type="range" min="0" max="1" step="0.01" value="0.25" class="w-40">
+            <span id="blobinessVal" class="tabular-nums">0.25</span>
+          </label>
+
+          <label class="flex items-center gap-2">
+            <span>Color</span>
+            <input id="color" type="color" value="#ffffff" class="w-9 h-9 p-0 border rounded">
+          </label>
+
+          <button id="theme-toggle" class="ml-auto px-3 py-2 border rounded border-gray-700 hover:bg-gray-800">
+            Theme: Dark
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <header class="sticky top-[56px] z-10 bg-gray-900/80 backdrop-blur border-b border-gray-800">
+      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <h1 class="text-xl font-semibold tracking-tight">Orbly Cursor Demo</h1>
+        <nav class="flex gap-4 text-sm">
+          <a href="#features" class="text-gray-300 hover:text-white underline-offset-4 hover:underline">Features</a>
+          <a href="#examples" class="text-gray-300 hover:text-white underline-offset-4 hover:underline">Examples</a>
+          <a href="#mixed" class="text-gray-300 hover:text-white underline-offset-4 hover:underline">Mixed</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-10 space-y-16">
+      <section class="space-y-6">
+        <h2 class="text-2xl font-bold">Water-balloon Blob with Lava Wobble</h2>
+        <p class="text-gray-300 max-w-2xl">
+          Move your mouse around. The blob squishes based on velocity and gently wobbles like a lava lamp.
+          The blob uses <code class="font-mono text-sm">mix-blend-mode: difference</code> for automatic contrast.
+        </p>
+        <div class="flex gap-3">
+          <a href="#" class="px-4 py-2 bg-emerald-400 text-gray-900 rounded hover:bg-emerald-300 transition" data-cursor-magnet>Primary link</a>
+          <button class="px-4 py-2 border border-gray-700 rounded hover:bg-white/5 transition" data-cursor-magnet>Button</button>
+          <input placeholder="Type here" class="px-3 py-2 bg-transparent border border-gray-700 rounded outline-none focus:ring ring-emerald-400/20" />
+          <select class="px-3 py-2 bg-transparent border border-gray-700 rounded">
+            <option>Option A</option>
+            <option>Option B</option>
+          </select>
+        </div>
+      </section>
+
+      <section id="features" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="p-6 rounded-lg border border-gray-800 bg-white/5">
+          <h3 class="font-semibold mb-2">Single Blob</h3>
+          <p class="text-gray-300">No ring, no trail — just the blob plus your system pointer.</p>
+        </div>
+        <div class="p-6 rounded-lg border border-gray-800 bg-white/5">
+          <h3 class="font-semibold mb-2">Contrast-Aware</h3>
+          <p class="text-gray-300">Blend mode keeps it visible on light and dark surfaces.</p>
+        </div>
+        <div class="p-6 rounded-lg border border-gray-800 bg-white/5">
+          <h3 class="font-semibold mb-2">Reduced Motion</h3>
+          <p class="text-gray-300">Respects prefers-reduced-motion by disabling squish and wobble.</p>
+        </div>
+      </section>
+
+      <section id="examples" class="space-y-4">
+        <h2 class="text-xl font-semibold">Interactive examples</h2>
+        <div class="flex gap-3 flex-wrap">
+          <a href="#" class="px-4 py-2 bg-blue-400 text-gray-900 rounded hover:bg-blue-300 transition" data-cursor-magnet>Call To Action</a>
+          <button class="px-4 py-2 bg-white/10 text-white rounded hover:bg-white/20 transition" data-cursor-magnet>Ghost Button</button>
+          <button class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-400 transition" data-cursor-magnet>Danger</button>
+          <a href="#" class="px-4 py-2 underline underline-offset-4 hover:text-white" data-cursor>Plain Link</a>
+        </div>
+      </section>
+
+      <section id="mixed" class="rounded-xl overflow-hidden border border-gray-800">
+        <div class="p-8 bg-gray-900 text-gray-100">
+          <h3 class="font-semibold text-lg mb-2">Dark surface</h3>
+          <p class="text-gray-300 mb-4">Hover the controls and links to see the blob contrast.</p>
+          <div class="flex gap-3">
+            <a href="#" class="px-4 py-2 bg-emerald-400 text-gray-900 rounded hover:bg-emerald-300 transition" data-cursor-magnet>Call to Action</a>
+            <button class="px-4 py-2 bg-gray-800 text-gray-100 rounded hover:bg-gray-700 transition" data-cursor-magnet>Dark Button</button>
+          </div>
+        </div>
+        <div class="p-8 bg-white text-gray-900">
+          <p class="text-gray-700">Mixed surfaces in one section to challenge contrast handling.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="max-w-6xl mx-auto px-6 py-10 text-sm text-gray-400">
+      <p>Orbly demo. Uses Tailwind CSS v4.</p>
+    </footer>
+
+    <script type="module">
+      import { createCursor } from 'orbly';
+
+      // Initialize with defaults matching the controls and API defaults
+      const api = createCursor({ size: 100, color: '#ffffff', opacity: 0.75, blobiness: 0.25, speed: { blob: 0.22 } });
+
+      // Controls
+      const scale = document.getElementById('scale');
+      const speed = document.getElementById('speed');
+      const size = document.getElementById('size');
+      const opacity = document.getElementById('opacity');
+      const blobiness = document.getElementById('blobiness');
+      const color = document.getElementById('color');
+
+      const scaleVal = document.getElementById('scaleVal');
+      const speedVal = document.getElementById('speedVal');
+      const sizeVal = document.getElementById('sizeVal');
+      const opacityVal = document.getElementById('opacityVal');
+      const blobinessVal = document.getElementById('blobinessVal');
+
+      const updateReadouts = () => {
+        if (scaleVal) scaleVal.textContent = `${parseFloat(scale.value).toFixed(2)}x`;
+        if (speedVal) speedVal.textContent = `${parseFloat(speed.value).toFixed(2)}`;
+        if (sizeVal) sizeVal.textContent = `${parseInt(size.value, 10)}px`;
+        if (opacityVal) opacityVal.textContent = `${parseFloat(opacity.value).toFixed(2)}`;
+        if (blobinessVal) blobinessVal.textContent = `${parseFloat(blobiness.value).toFixed(2)}`;
+      };
+
+      const onScale = () => { api.setScale(parseFloat(scale.value)); updateReadouts(); };
+      const onSpeed = () => { api.setSpeed({ blob: parseFloat(speed.value) }); updateReadouts(); };
+      const onSize = () => { api.setSize(parseFloat(size.value)); updateReadouts(); };
+      const onOpacity = () => { api.setOpacity(parseFloat(opacity.value)); updateReadouts(); };
+      const onBlobiness = () => { api.setBlobiness(parseFloat(blobiness.value)); updateReadouts(); };
+      const onColor = () => { api.setColor(color.value); };
+
+      scale.addEventListener('input', onScale);
+      speed.addEventListener('input', onSpeed);
+      size.addEventListener('input', onSize);
+      opacity.addEventListener('input', onOpacity);
+      blobiness.addEventListener('input', onBlobiness);
+      color.addEventListener('input', onColor);
+
+      // Theme toggle (global)
+      const page = document.getElementById('page');
+      const controlsBar = document.getElementById('controls');
+      const header = document.querySelector('header');
+      const themeToggle = document.getElementById('theme-toggle');
+      let dark = true;
+      const applyTheme = () => {
+        if (dark) {
+          page.className = 'min-h-screen bg-gray-900 text-gray-100 antialiased';
+          header.className = 'sticky top-[56px] z-10 bg-gray-900/80 backdrop-blur border-b border-gray-800';
+          controlsBar.className = 'sticky top-0 z-20 bg-gray-900/80 backdrop-blur border-b border-gray-800';
+          themeToggle.textContent = 'Theme: Dark';
+        } else {
+          page.className = 'min-h-screen bg-white text-gray-900 antialiased';
+          header.className = 'sticky top-[56px] z-10 bg-white/80 backdrop-blur border-b border-gray-200';
+          controlsBar.className = 'sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-gray-200';
+          themeToggle.textContent = 'Theme: Light';
+        }
+      };
+      themeToggle.addEventListener('click', () => { dark = !dark; applyTheme(); });
+
+      // Initial sync
+      updateReadouts();
+      applyTheme();
+
+      // Quick section toggler for mixed block
+      const darkSection = document.getElementById('mixed');
+      const swapBtn = document.createElement('button');
+      swapBtn.textContent = 'Toggle dark section below';
+      swapBtn.className = 'mt-2 px-3 py-2 border rounded border-current/30 hover:bg-white/5';
+      darkSection?.insertAdjacentElement('afterbegin', swapBtn);
+      swapBtn?.addEventListener('click', () => {
+        const first = darkSection.querySelector(':scope > div:nth-child(1)');
+        const second = darkSection.querySelector(':scope > div:nth-child(2)');
+        if (first && second) {
+          const firstIsDark = first.classList.contains('bg-gray-900');
+          if (firstIsDark) {
+            first.className = 'p-8 bg-white text-gray-900';
+            second.className = 'p-8 bg-gray-900 text-gray-100';
+          } else {
+            first.className = 'p-8 bg-gray-900 text-gray-100';
+            second.className = 'p-8 bg-white text-gray-900';
+          }
+        }
+      });
+
+      // Expose for debugging
+      window.orbly = api;
+    </script>
+  </body>
+</html>
+
