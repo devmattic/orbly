@@ -1,6 +1,6 @@
 {
   "name": "@devmattic/orbly",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Tailwind-first blended custom blob cursor with magnetic hover.",
   "type": "module",
   "license": "MIT",
