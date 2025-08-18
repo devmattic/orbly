@@ -2,7 +2,8 @@ export type OrblyOptions = {
   interactive?: string;
   startX?: number;
   startY?: number;
-  speed?: { dot?: number; ring?: number; trail?: number };
+  // smoothing for blob follow (0..1). Higher is snappier.
+  speed?: { blob?: number };
   respectReducedMotion?: boolean;
   container?: HTMLElement;
 };
@@ -12,13 +13,13 @@ export type OrblyAPI = {
   destroy(): void;
   setScale(scale: number): void;
   setColor(rgb: string): void;
-  setSpeed(next: { dot?: number; ring?: number; trail?: number }): void;
+  setSpeed(next: { blob?: number }): void;
   setInteractive(selector: string): void;
   hoverIn(el?: HTMLElement | null): void;
   hoverOut(): void;
   addMagnet(el: HTMLElement): void;
   removeMagnet(el: HTMLElement): void;
-  getElements(): { root: HTMLElement; dot: HTMLElement; ring: HTMLElement; trail: HTMLElement };
+  getElements(): { root: HTMLElement; blob: HTMLElement };
 };
 
 
@@ -44,25 +45,47 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   const {
     startX = window.innerWidth / 2,
     startY = window.innerHeight / 2,
-    speed = { dot: 0.25, ring: 0.12, trail: 0.08 },
+    speed = { blob: 0.22 },
     respectReducedMotion = true,
     container = document.body
   } = opts;
 
   const reduceMotion = respectReducedMotion && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // Root container and single "blob" element
   const root = document.createElement('div');
   root.className = 'cc cc--hidden';
-  const trail = document.createElement('div'); trail.className = 'cc__trail';
-  const ring  = document.createElement('div'); ring.className  = 'cc__ring';
-  const dot   = document.createElement('div'); dot.className   = 'cc__dot';
-  root.append(trail, ring, dot);
+  const blob = document.createElement('div');
+  blob.className = 'cc__blob';
+  root.append(blob);
   container.append(root);
 
+  // Inline styles to avoid external CSS requirements
+  Object.assign(root.style, {
+    position: 'fixed',
+    inset: '0px',
+    pointerEvents: 'none',
+    zIndex: '2147483647',
+    contain: 'layout style paint',
+  } as Partial<CSSStyleDeclaration>);
+  Object.assign(blob.style, {
+    position: 'fixed',
+    left: '0px',
+    top: '0px',
+    width: '20px',
+    height: '20px',
+    borderRadius: '9999px',
+    background: 'currentColor',
+    color: 'white',
+    mixBlendMode: 'difference', // ensures high contrast against background
+    transform: 'translate(-50%, -50%) scale(var(--cursor-scale, 1))',
+    willChange: 'transform',
+    pointerEvents: 'none',
+  } as Partial<CSSStyleDeclaration>);
+
   let mouse = { x: startX, y: startY };
-  let dotPos = { x: startX, y: startY };
-  let ringPos = { x: startX, y: startY };
-  let trailPos = { x: startX, y: startY };
+  let pos = { x: startX, y: startY };
+  let prev = { x: startX, y: startY };
   const magnets = new Set<HTMLElement>();
 
   const onMouseMove = (e: MouseEvent) => { mouse.x = e.clientX; mouse.y = e.clientY; root.classList.remove('cc--hidden'); };
@@ -74,7 +97,6 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     const targetEl = e.target as Element | null;
     const el = targetEl?.closest?.(interactive) as HTMLElement | null;
     root.classList.toggle('cc--hover', !!el);
-    // Support opt-in magnet via anchors and [data-cursor-magnet]
     if (el && (el.tagName.toLowerCase() === 'a' || el.hasAttribute('data-cursor-magnet'))) magnets.add(el);
   };
   const onOut = (e: MouseEvent) => {
@@ -93,23 +115,45 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   document.addEventListener('mouseout', onOut as any);
 
   let raf = 0;
-  let speeds = { dot: speed.dot ?? 0.25, ring: speed.ring ?? 0.12, trail: speed.trail ?? 0.08 };
+  let speeds = { blob: speed.blob ?? 0.22 };
+
+  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+
   const tick = () => {
     let target = { ...mouse };
+    // magnet support
     for (const el of magnets) { const r = el.getBoundingClientRect(); target.x = r.left + r.width / 2; target.y = r.top + r.height / 2; break; }
-    dotPos.x = lerp(dotPos.x, mouse.x, speeds.dot);
-    dotPos.y = lerp(dotPos.y, mouse.y, speeds.dot);
-    ringPos.x = lerp(ringPos.x, target.x, speeds.ring);
-    ringPos.y = lerp(ringPos.y, target.y, speeds.ring);
-    trailPos.x = lerp(trailPos.x, mouse.x, speeds.trail);
-    trailPos.y = lerp(trailPos.y, mouse.y, speeds.trail);
-    dot.style.transform   = `translate(${dotPos.x}px, ${dotPos.y}px) translate(-50%, -50%) scale(var(--cursor-scale))`;
-    ring.style.transform  = `translate(${ringPos.x}px, ${ringPos.y}px) translate(-50%, -50%) scale(var(--cursor-scale))`;
-    trail.style.transform = `translate(${trailPos.x}px, ${trailPos.y}px) translate(-50%, -50%)`;
+
+    // follow with smoothing
+    pos.x = lerp(pos.x, target.x, speeds.blob);
+    pos.y = lerp(pos.y, target.y, speeds.blob);
+
+    // compute velocity for squish
+    const vx = pos.x - prev.x;
+    const vy = pos.y - prev.y;
+    const speedLen = Math.hypot(vx, vy);
+    const angle = Math.atan2(vy, vx);
+
+    // squish based on velocity (water-balloon like)
+    const squish = reduceMotion ? 0 : clamp(speedLen / 25, 0, 0.35);
+    const scaleX = 1 + squish;
+    const scaleY = 1 - squish;
+
+    blob.style.transform = `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%) rotate(${angle}rad) scale(${scaleX}, ${scaleY})`;
+
+    prev.x = pos.x; prev.y = pos.y;
     raf = requestAnimationFrame(tick);
   };
 
-  if (!reduceMotion) raf = requestAnimationFrame(tick);
+  if (!reduceMotion) {
+    raf = requestAnimationFrame(tick);
+  } else {
+    // Reduced motion: jump to mouse without animation
+    const onMove = () => {
+      blob.style.transform = `translate(${mouse.x}px, ${mouse.y}px) translate(-50%, -50%)`;
+    };
+    window.addEventListener('mousemove', onMove, { passive: true });
+  }
 
   function destroy() {
     cancelAnimationFrame(raf);
@@ -124,9 +168,9 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   }
 
   function setScale(scale: number) { (root as HTMLElement).style.setProperty('--cursor-scale', String(scale)); }
-  function setColor(rgb: string) { (root as HTMLElement).style.setProperty('--cursor-color', rgb); }
-  function setSpeed(next: { dot?: number; ring?: number; trail?: number }) {
-    speeds = { dot: next.dot ?? speeds.dot, ring: next.ring ?? speeds.ring, trail: next.trail ?? speeds.trail };
+  function setColor(rgb: string) { (root as HTMLElement).style.setProperty('--cursor-color', rgb); blob.style.color = rgb; }
+  function setSpeed(next: { blob?: number }) {
+    speeds = { blob: next.blob ?? speeds.blob };
   }
   function setInteractive(selector: string) { interactive = selector; }
   function hoverIn(el?: HTMLElement | null) {
@@ -140,5 +184,5 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
   function addMagnet(el: HTMLElement) { magnets.add(el); }
   function removeMagnet(el: HTMLElement) { if (magnets.has(el)) magnets.delete(el); }
 
-  return { destroy, setScale, setColor, setSpeed, setInteractive, hoverIn, hoverOut, addMagnet, removeMagnet, getElements: () => ({ root, dot, ring, trail }) };
+  return { destroy, setScale, setColor, setSpeed, setInteractive, hoverIn, hoverOut, addMagnet, removeMagnet, getElements: () => ({ root, blob }) };
 }
