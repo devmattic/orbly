@@ -55,7 +55,7 @@ export function createCursor(opts: OrblyOptions = {}): OrblyAPI {
     } as OrblyAPI;
   }
 
-  let interactive = opts.interactive ?? 'a, button, [role="button"], input, textarea, select, summary, .is-interactive, [data-cursor], [data-cursor="hover"]';
+  let interactive = opts.interactive ?? 'button, [role="button"], input, textarea, select, summary, .is-interactive, [data-cursor], [data-cursor="hover"]';
   const {
     startX = window.innerWidth / 2,
     startY = window.innerHeight / 2,
